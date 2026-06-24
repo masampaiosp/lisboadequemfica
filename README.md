@@ -1,7 +1,7 @@
 # Lisboa de quem fica
 
-**An affective, anti-gentrification map of independent, affordable food in Lisbon and on both banks of the Tejo.
-** Cafés, tascas, grocers and neighbourhood restaurants for the people who live here and stay here, not for tourism.
+An affective, anti-gentrification map of independent, affordable food in Lisbon and on both banks of the Tejo.
+Cafés, tascas, grocers and neighbourhood restaurants for the people who live here and stay here, not for tourism.
 
 The content is in European Portuguese. This is a portfolio piece, not a commercial product.
 
