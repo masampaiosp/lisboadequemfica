@@ -183,6 +183,10 @@
   .src{color:#8a93a8;font-size:11px}
   .src.ia{color:var(--cobalto-3)}
   .disclaimer{font-size:11.5px;color:#8a93a8;margin-top:11px;border-top:1px solid var(--line-soft);padding-top:9px;line-height:1.4}
+  .card-links{margin-top:10px}
+  .card-links a{display:inline-flex;align-items:center;gap:5px;color:var(--cobalto-2);font-size:12.5px;font-weight:600;text-decoration:none}
+  .card-links a:hover{text-decoration:underline}
+  .card-links svg{width:13px;height:13px}
 
   .empty{border:1.5px dashed var(--line);border-radius:14px;padding:40px 26px;text-align:center;color:#5b6680;grid-column:1/-1}
   .empty h4{font-family:var(--serif);font-weight:600;font-size:21px;color:var(--ink);margin:0 0 8px}
@@ -217,7 +221,7 @@
       <p class="eyebrow">Mapa colaborativo · Lisboa e as duas margens</p>
       <h1>Lisboa<br>de quem <em>fica</em></h1>
       <div class="lede">
-        <p class="lede-lead">Por aqui ainda se pede um galão e o bom dia pode até vir com sotaque, mas vem em português.</p>
+        <p class="lede-lead">Por aqui ainda chamamos de galão! O bom dia pode até vir com sotaque, mas vem em português.</p>
         <p class="lede-body">Cafés, tascas, mercearias e restaurantes de todas as origens, para quem cá está e para quem cá fica: <span class="hit">Lisboa resiste</span>. A seleção é feita com IA, que pesquisa na web e confirma se a casa é independente e de conta amiga. A comunidade também pode e deve contribuir.</p>
         <p class="lede-close">O crivo é simples: preço justo e raízes no bairro. Quem manda aqui é a vizinhança, não o turismo.</p>
       </div>
@@ -271,6 +275,19 @@
     </svg>
   </div>
 
+  <!-- LISTA -->
+  <div class="listfilters">
+    <div class="field"><label for="lf-conc">Concelho</label><select id="lf-conc"></select></div>
+    <div class="field"><label for="lf-bairro">Bairro</label><select id="lf-bairro"><option value="todos">Todos os bairros</option></select></div>
+    <div class="field"><label for="lf-tipo">Tipo</label><select id="lf-tipo"><option value="todos">Todos</option><option>Tasca</option><option>Restaurante de bairro</option><option>Mercearia</option><option>Pastelaria</option><option>Café de bairro</option><option>Take-away / comida</option><option>Outro</option></select></div>
+    <button class="chip-veg" id="veg-btn" aria-pressed="false">opção vegetariana</button>
+    <button class="chip-reset" id="reset-btn">limpar filtros</button>
+    <span class="count" id="count"></span>
+  </div>
+  <div class="grid" id="grid"></div>
+
+  <div class="calcada"></div>
+
   <!-- SUGERIR (formulário estático, abre email) -->
   <div class="box bar">
     <h3>Sugere uma casa que resiste</h3>
@@ -288,18 +305,6 @@
     </div>
     <div class="note" id="add-note"></div>
   </div>
-
-  <div class="calcada"></div>
-
-  <!-- LISTA -->
-  <div class="listfilters">
-    <div class="field"><label for="lf-conc">Concelho</label><select id="lf-conc"></select></div>
-    <div class="field"><label for="lf-tipo">Tipo</label><select id="lf-tipo"><option value="todos">Todos</option><option>Tasca</option><option>Restaurante de bairro</option><option>Mercearia</option><option>Pastelaria</option><option>Café de bairro</option><option>Take-away / comida</option><option>Outro</option></select></div>
-    <button class="chip-veg" id="veg-btn" aria-pressed="false">opção vegetariana</button>
-    <button class="chip-reset" id="reset-btn">limpar filtros</button>
-    <span class="count" id="count"></span>
-  </div>
-  <div class="grid" id="grid"></div>
 
   <!-- SOBRE -->
   <section class="about">
@@ -339,7 +344,7 @@ const CONCELHOS = {
 let LOCAIS = [];
 let busy = false;
 const STORE_KEY = "ldqf_locais_v9";
-const filtros = {conc:"todos", tipo:"todos", verd:"entram", veg:false};
+const filtros = {conc:"todos", bairro:"todos", tipo:"todos", verd:"entram", veg:false};
 // Casas com opção vegetariana/vegana confirmada (pesquisa) ou cozinha com forte oferta vegetariana
 const VEG = {
   "Maria dos Tachos":"vegan",
@@ -599,25 +604,54 @@ async function saveLocais(){
   try{ await window.storage.set(STORE_KEY, JSON.stringify(LOCAIS.slice(-300)), true); }catch(e){}
 }
 
-/* ---------- sugestão por email (estático, sem API) ---------- */
-const EMAIL_SUGESTOES = "masampaiosp@gmail.com";
-function sugerir(){
+/* ---------- sugestão por formulário (Web3Forms, sem servidor próprio) ---------- */
+// Cola aqui a tua Access Key gratuita de web3forms.com (ligada a masampaiosp@gmail.com).
+const WEB3FORMS_KEY = "COLE_AQUI_A_SUA_ACCESS_KEY";
+async function sugerir(){
   const nome = val("f-nome").trim(), conc = val("f-conc"), bairro = val("f-bairro"), tipo = val("f-tipo"), porque = val("f-porque").trim();
   const note = document.getElementById("add-note");
+  const btn = document.getElementById("add-btn");
   if(!nome){ note.innerHTML = '<span class="warn">Falta o nome do comércio.</span>'; return; }
-  const assunto = "Sugestão para o mapa: " + nome;
-  const corpo =
-    "Olá! Quero sugerir uma casa para o \"Lisboa de quem fica\":\n\n" +
-    "Nome: " + nome + "\n" +
-    "Tipo: " + tipo + "\n" +
-    "Concelho: " + conc + "\n" +
-    "Bairro / freguesia: " + bairro + "\n" +
-    "Porque resiste: " + (porque || "(não preenchido)") + "\n\n" +
-    "(enviado pelo formulário do mapa)";
-  window.location.href = "mailto:" + EMAIL_SUGESTOES +
-    "?subject=" + encodeURIComponent(assunto) + "&body=" + encodeURIComponent(corpo);
-  note.innerHTML = '<span class="ok">Obrigada! Abri o teu email com a sugestão preenchida, é só enviares. Se não abrir, escreve para <b>' + EMAIL_SUGESTOES + '</b>.</span>';
-  ["f-nome","f-porque"].forEach(id=>document.getElementById(id).value="");
+  // Sem chave do Web3Forms? Abre o email com a sugestão preenchida (alternativa que funciona sempre).
+  if(!WEB3FORMS_KEY || WEB3FORMS_KEY === "COLE_AQUI_A_SUA_ACCESS_KEY"){
+    const corpo = "Sugestão para o mapa:\n\nNome: " + nome + "\nTipo: " + tipo +
+      "\nConcelho: " + conc + "\nBairro: " + bairro + "\nPorque resiste: " + (porque || "(não preenchido)");
+    window.location.href = "mailto:masampaiosp@gmail.com?subject=" +
+      encodeURIComponent("Sugestão para o mapa: " + nome) + "&body=" + encodeURIComponent(corpo);
+    note.innerHTML = '<span class="ok">Obrigada! Abri o teu email com a sugestão preenchida, é só enviares.</span>';
+    ["f-nome","f-porque"].forEach(id=>document.getElementById(id).value="");
+    return;
+  }
+  btn.disabled = true;
+  note.textContent = "A enviar a sugestão…";
+  try{
+    const res = await fetch("https://api.web3forms.com/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify({
+        access_key: WEB3FORMS_KEY,
+        subject: "Sugestão para o mapa: " + nome,
+        from_name: "Lisboa de quem fica",
+        Nome: nome,
+        Tipo: tipo,
+        Concelho: conc,
+        "Bairro/freguesia": bairro,
+        "Porque resiste": porque || "(não preenchido)",
+        botcheck: ""
+      })
+    });
+    const data = await res.json();
+    if(data.success){
+      note.innerHTML = '<span class="ok">Obrigada! A tua sugestão foi enviada e vai ser revista antes de entrar no mapa.</span>';
+      ["f-nome","f-porque"].forEach(id=>document.getElementById(id).value="");
+    } else {
+      note.innerHTML = '<span class="err">Não consegui enviar agora. Tenta de novo daqui a pouco.</span>';
+    }
+  }catch(e){
+    note.innerHTML = '<span class="err">Não consegui enviar agora. Verifica a ligação e tenta de novo.</span>';
+  }finally{
+    btn.disabled = false;
+  }
 }
 
 /* ---------- render ---------- */
@@ -632,15 +666,30 @@ function syncBairros(concId, bairroId){
   const c = val(concId); const list = CONCELHOS[c] || [];
   document.getElementById(bairroId).innerHTML = list.map(b=>`<option>${esc(b)}</option>`).join("");
 }
+function fillBairroFiltro(conc){
+  let bs = (conc && conc!=="todos")
+    ? LOCAIS.filter(l=>l.concelho===conc).map(l=>l.bairro)
+    : LOCAIS.map(l=>l.bairro);
+  bs = [...new Set(bs)].sort((a,b)=>a.localeCompare(b,"pt"));
+  document.getElementById("lf-bairro").innerHTML =
+    '<option value="todos">Todos os bairros</option>' + bs.map(b=>`<option>${esc(b)}</option>`).join("");
+}
 
 function verdClass(v){ return v==="PASSA"?"v-passa":(v==="NÃO PASSA"?"v-nao":"v-duvida"); }
 function verdLabel(v){ return v==="PASSA"?"Sem latte à vista":(v==="EM DÚVIDA"?"Avalie":"Não passa"); }
 function srcDisclaimer(fonte){ return fonte==="comunidade" ? "Adicionado por local, confirme no estabelecimento." : "Selecção curada, confirme no estabelecimento."; }
+// Link da casa: usa o site oficial se existir; senão, uma pesquisa no Google Maps (sempre resolve no sítio certo).
+function placeUrl(l){
+  if(l.site) return l.site;
+  const q = encodeURIComponent([l.nome, l.bairro, l.concelho, "Portugal"].filter(Boolean).join(" "));
+  return "https://www.google.com/maps/search/?api=1&query=" + q;
+}
 
 function render(){
   const grid = document.getElementById("grid");
   let list = LOCAIS.slice().reverse();
   if(filtros.conc!=="todos") list = list.filter(l=>l.concelho===filtros.conc);
+  if(filtros.bairro!=="todos") list = list.filter(l=>l.bairro===filtros.bairro);
   if(filtros.tipo!=="todos") list = list.filter(l=>l.tipo===filtros.tipo);
   if(filtros.veg) list = list.filter(l=>l.veg);
   if(filtros.verd==="entram") list = list.filter(l=>l.veredicto!=="NÃO PASSA");
@@ -661,6 +710,7 @@ function render(){
         <span class="verd ${verdClass(l.veredicto)}">${esc(verdLabel(l.veredicto))}</span>
         ${l.veg?`<span class="veg-badge"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17 8C8 10 5.9 16.2 4 21l1.6.5C7 17 9 14 17 13c-4 3-7 4-9 7 6 1 12-2 13-9 .5-3 .5-6 .5-8-2 0-3.5 1-5 1z"/></svg>${l.veg==="vegan"?"vegan":"vegetariano"}</span>`:""}
       </div>
+      <div class="card-links"><a href="${placeUrl(l)}" target="_blank" rel="noopener">${l.site?"Site":"Ver no mapa"} <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></a></div>
       <div class="disclaimer">${esc(srcDisclaimer(l.fonte))}</div>
     </div>`).join("");
 }
@@ -674,11 +724,13 @@ function render(){
   document.getElementById("f-conc").addEventListener("change",()=>syncBairros("f-conc","f-bairro"));
 
   // filtros lista
-  document.getElementById("lf-conc").addEventListener("change",e=>{filtros.conc=e.target.value;render();});
+  document.getElementById("lf-conc").addEventListener("change",e=>{filtros.conc=e.target.value;filtros.bairro="todos";fillBairroFiltro(filtros.conc);render();});
+  document.getElementById("lf-bairro").addEventListener("change",e=>{filtros.bairro=e.target.value;render();});
   document.getElementById("lf-tipo").addEventListener("change",e=>{filtros.tipo=e.target.value;render();});
   document.getElementById("reset-btn").addEventListener("click",()=>{
-    filtros.conc="todos";filtros.tipo="todos";filtros.verd="entram";filtros.veg=false;
+    filtros.conc="todos";filtros.bairro="todos";filtros.tipo="todos";filtros.verd="entram";filtros.veg=false;
     document.getElementById("lf-conc").value="todos";document.getElementById("lf-tipo").value="todos";
+    fillBairroFiltro("todos");
     const vb=document.getElementById("veg-btn");vb.classList.remove("on");vb.setAttribute("aria-pressed","false");
     document.querySelectorAll(".conc").forEach(c=>c.classList.remove("on"));render();
   });
@@ -688,7 +740,7 @@ function render(){
     const act=()=>{
       document.querySelectorAll(".conc").forEach(c=>c.classList.remove("on"));
       g.classList.add("on");
-      filtros.conc=g.dataset.c; document.getElementById("lf-conc").value=g.dataset.c; render();
+      filtros.conc=g.dataset.c; filtros.bairro="todos"; document.getElementById("lf-conc").value=g.dataset.c; fillBairroFiltro(g.dataset.c); render();
       document.querySelector(".listfilters").scrollIntoView({behavior:"smooth",block:"start"});
     };
     g.addEventListener("click",act);
@@ -715,6 +767,7 @@ function render(){
     await saveLocais();
   }
   LOCAIS = LOCAIS.map(l=>({...l, veg: l.veg || VEG[l.nome] || ""}));
+  fillBairroFiltro("todos");
   render();
 })();
 </script>
